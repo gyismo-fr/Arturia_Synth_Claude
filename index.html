@@ -1,0 +1,127 @@
+<!doctype html>
+<html lang="fr">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>MiniSynth</title>
+  <link rel="stylesheet" href="style.css">
+</head>
+<body>
+  <div id="start" class="overlay">
+    <div class="start-card">
+      <div class="brand big">MINI<b>SYNTH</b></div>
+      <p>Synthé soustractif piloté par ton Arturia MiniLab 3</p>
+      <button id="startBtn" class="primary">▶ Démarrer le son</button>
+      <p class="hint">Le navigateur va demander l'accès aux appareils MIDI : accepte.<br>
+        Ferme Arturia MIDI Control Center / ton DAW s'ils utilisent le MiniLab.</p>
+      <p id="startErr" class="err"></p>
+    </div>
+  </div>
+
+  <header>
+    <div class="brand">MINI<b>SYNTH</b></div>
+    <div class="presets">
+      <button id="prevP" title="Preset précédent (encodeur principal)">◀</button>
+      <select id="presetSel" aria-label="Preset"></select>
+      <button id="nextP" title="Preset suivant (encodeur principal)">▶</button>
+      <span id="modFlag" class="mod" title="Modifié depuis le chargement" hidden>● modifié</span>
+      <button id="saveP">Enregistrer</button>
+      <button id="delP">Suppr.</button>
+      <button id="exportP">Exporter</button>
+      <button id="importP">Importer</button>
+      <input type="file" id="importFile" accept=".json,application/json" hidden>
+    </div>
+    <div class="status">
+      <span class="chip"><i class="led" id="midiLed"></i><span id="midiName">MIDI…</span></span>
+      <span class="chip" id="audioChip" title="Latence de sortie audio">— ms</span>
+      <span class="chip" id="voiceChip">0 / 8 voix</span>
+      <button id="calibBtn">Calibrer MiniLab</button>
+      <button id="panicBtn" class="danger" title="Coupe toutes les notes (Échap)">Panique</button>
+    </div>
+  </header>
+
+  <nav id="tabs" aria-label="Pages (pads 1–8)"></nav>
+
+  <main>
+    <section class="card stage">
+      <div class="head"><h2 id="pageTitle"></h2><span class="sub">Potards 1–8</span></div>
+      <div class="bigknobs" id="bigKnobs"></div>
+    </section>
+    <section class="card faders-card">
+      <div class="head"><h2>AMPLI</h2><span class="sub">Faders 1–4</span></div>
+      <div class="faders" id="faders"></div>
+    </section>
+    <section class="card scope-card">
+      <canvas id="scope"></canvas>
+      <div id="hud" class="hud"></div>
+    </section>
+  </main>
+
+  <section class="card looper" id="looper" data-st="vide">
+    <div class="lp-row">
+      <h2>LOOPER</h2>
+      <button id="lpRec" class="lp-rec" title="Enregistrer la base / ajouter une couche (touche R)">● REC</button>
+      <button id="lpPlay" title="Lecture / stop (Espace)">▶ Lecture</button>
+      <button id="lpUndo" title="Annuler la dernière couche (Retour arrière)">↶ Annuler</button>
+      <button id="lpClear" title="Effacer toute la boucle">✕ Effacer</button>
+      <div class="stepper" title="Longueur de la boucle, en temps (noires)">
+        <span class="lbl">Longueur</span>
+        <button id="beatsMinus" aria-label="Moins de temps">−</button>
+        <b id="lpBeats">8</b><span class="lbl">temps</span>
+        <button id="beatsPlus" aria-label="Plus de temps">+</button>
+        <span class="lbl dim" id="lpBars"></span>
+      </div>
+      <div class="stepper" title="Tempo (Maj+clic = ±10). Verrouillé tant qu'une boucle existe.">
+        <span class="lbl">Tempo</span>
+        <button id="bpmMinus" aria-label="Ralentir">−</button>
+        <b id="lpBpm">120</b><span class="lbl">BPM</span>
+        <button id="bpmPlus" aria-label="Accélérer">+</button>
+      </div>
+      <label class="chk"><input type="checkbox" id="lpMetro"> Métronome</label>
+      <label class="chk">Volume boucle <input type="range" id="lpVol" min="0" max="1.2" step="0.01"></label>
+      <button id="lpWav" title="Télécharger la boucle (couches actives) en WAV">⤓ WAV</button>
+    </div>
+    <div class="lp-bar">
+      <div class="lp-cells" id="lpCells"></div>
+      <div class="lp-head-wrap"><div class="lp-head" id="lpHead" hidden></div></div>
+      <div class="lp-count" id="lpCount"></div>
+    </div>
+    <div class="lp-row2">
+      <span id="lpStatus" class="lp-status"></span>
+      <div id="lpLayers" class="lp-layers"></div>
+    </div>
+  </section>
+
+  <section class="card kb-card">
+    <div id="keyboard" class="keyboard"></div>
+    <p class="kb-info">Clavier PC : rangée <b>Q S D F G H J K</b> (AZERTY) = touches blanches, <b>Z E T Y U</b> = noires,
+      <b>W / X</b> = octave, <b>Échap</b> = panique · Looper : <b>R</b> = rec/overdub, <b>Espace</b> = lecture/stop,
+      <b>⌫</b> = annuler la couche · Pads 9–16 = accords</p>
+  </section>
+
+  <section class="overview" id="overview"></section>
+
+  <footer><span class="mon-label">MIDI</span><span id="monitor">En attente de messages…</span></footer>
+
+  <dialog id="calib">
+    <div class="dlg-head">
+      <h2>Calibration MiniLab 3</h2>
+      <button id="calibClose" aria-label="Fermer">✕</button>
+    </div>
+    <p class="dlg-text">Le mapping d'usine du MiniLab 3 est préchargé. Si un contrôle ne réagit pas, clique sur
+      <b>Apprendre</b> puis touche le contrôle sur le MiniLab (tourne un potard vers la droite pendant ~½ s).
+      Le mode absolu/relatif des potards est détecté automatiquement.</p>
+    <label class="inrow">Entrée MIDI <select id="midiIn"></select></label>
+    <div class="tbl-wrap">
+      <table>
+        <thead><tr><th>Contrôle</th><th>Message reçu</th><th>Mode</th><th></th></tr></thead>
+        <tbody id="calibRows"></tbody>
+      </table>
+    </div>
+    <div class="dlg-foot"><button id="calibReset">Revenir au mapping d'usine</button></div>
+  </dialog>
+
+  <div id="toast" role="status"></div>
+  <script type="module" src="main.js"></script>
+</body>
+</html>
